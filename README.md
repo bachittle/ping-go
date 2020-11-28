@@ -8,3 +8,19 @@ Requires 'git'
 
 Why do you have to 'git clone' when you can just run 'go get'?
 Because the dependency is outdated on 'go get' but is not outdated on 'git'. 
+
+# Usage
+### For Linux
+(building from source)
+```console
+foo@bar:~$ go build
+foo@bar:~$ ./ping-go [-c count] destination
+```
+if you get `socket: operation not permitted`, try running as root (or sudo)
+
+### For Windows
+(building from source)
+```bat
+go build
+ping-go.exe [-c count] destination
+```
