@@ -13,7 +13,7 @@ func main() {
 	// analyze runtime OS
 	fmt.Println(runtime.GOOS)
 
-	conn, err := icmp.ListenPacket("ip:icmp", "127.0.0.1")
+	conn, err := icmp.ListenPacket("ip:icmp", "127.0.0.1") // packets from localhost
 	if err != nil {
 		fmt.Println("ERROR:", err.Error())
 	}
@@ -34,7 +34,7 @@ func main() {
 		fmt.Println(err.Error())
 	}
 
-	_, err = conn.WriteTo(reqBinary, &net.IPAddr{IP: net.IPv4(127, 0, 0, 1), Zone: "en0"})
+	_, err = conn.WriteTo(reqBinary, &net.IPAddr{IP: net.ParseIP("localhost"), Zone: "en0"})
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -50,9 +50,8 @@ func main() {
 	}
 	switch respMessage.Type {
 	case ipv4.ICMPTypeEchoReply:
-		fmt.Printf("got reflection from %v", peer)
+		fmt.Println("got reflection from", peer)
 	default:
-		fmt.Printf("got %+v; want echo reply", respMessage)
-		fmt.Println(respBinary[:n])
+		fmt.Printf("got %+v; want echo reply\n", respMessage)
 	}
 }
