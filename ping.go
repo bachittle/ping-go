@@ -12,7 +12,7 @@ func main() {
 	args := os.Args[1:]
 	// must have at least a destination IP address. If not, print usage.
 	if len(args) == 0 {
-		fmt.Println("usage: ping [-c count] destination")
+		fmt.Println("usage: ping-go [-c count] destination")
 		os.Exit(0)
 	}
 	p := pinger.NewPinger()
