@@ -8,7 +8,7 @@ import (
 // TestPinger
 func TestPinger(t *testing.T) {
 	tests := []string{
-		"192.168.50.76",
+		"localhost",
 		"192.168.50.1", // change this number to your default gateway
 		"google.com",
 	}
