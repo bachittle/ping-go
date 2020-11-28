@@ -20,6 +20,7 @@ func TestPinger(t *testing.T) {
 				t.Error("Error parsing IP:", err)
 			}
 			p.dst = dst
+			t.Log("testing", p.src, p.dst, p.amt)
 			err = p.Ping()
 			if err != nil {
 				t.Error("Error in p.Ping():", err)
