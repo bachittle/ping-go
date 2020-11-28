@@ -9,6 +9,6 @@ require (
 )
 
 replace (
-	github.com/jackpal/gateway => ../ext/gateway
 	github.com/bachittle/ping-go/utils => ../utils
+	github.com/jackpal/gateway => ../ext/gateway
 )
