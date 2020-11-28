@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestPinger
+// TestPinger tests pinger
 func TestPinger(t *testing.T) {
 	tests := []string{
 		"localhost",
