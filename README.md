@@ -8,4 +8,3 @@ Requires 'git'
 
 Why do you have to 'git clone' when you can just run 'go get'?
 Because the dependency is outdated on 'go get' but is not outdated on 'git'. 
-Don't blame me, blame the devs that made that package and forgot to keep it updated.
