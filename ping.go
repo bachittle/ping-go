@@ -2,56 +2,45 @@ package main
 
 import (
 	"fmt"
-	"golang.org/x/net/icmp"
-	"golang.org/x/net/ipv4"
-	"net"
+	"github.com/bachittle/ping-go/pinger"
+	"github.com/bachittle/ping-go/utils"
 	"os"
-	"runtime"
+	"strconv"
 )
 
 func main() {
-	// analyze runtime OS
-	fmt.Println(runtime.GOOS)
-
-	conn, err := icmp.ListenPacket("ip:icmp", "127.0.0.1") // packets from localhost
-	if err != nil {
-		fmt.Println("ERROR:", err.Error())
+	args := os.Args[1:]
+	// must have at least a destination IP address. If not, print usage.
+	if len(args) == 0 {
+		fmt.Println("usage: ping [-c count] destination")
+		os.Exit(0)
 	}
-	defer conn.Close()
-
-	reqMsg := icmp.Message{
-		Type: ipv4.ICMPTypeEcho,
-		Code: 0,
-		Body: &icmp.Echo{
-			ID:   os.Getpid() & 0xffff,
-			Seq:  1,
-			Data: []byte(""),
-		},
+	p := pinger.NewPinger()
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "-c":
+			i++ // use next argument i=i+1
+			amt, err := strconv.Atoi(args[i])
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			p.SetAmt(amt)
+			break
+		default:
+			// use this argument i=i
+			ip, err := utils.GetIPv4(args[i])
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			p.SetDst(ip)
+			break
+		}
 	}
-
-	reqBinary, err := reqMsg.Marshal(nil)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	_, err = conn.WriteTo(reqBinary, &net.IPAddr{IP: net.ParseIP("localhost"), Zone: "en0"})
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	respBinary := make([]byte, 1500)
-	n, peer, err := conn.ReadFrom(respBinary)
-	if err != nil {
-		fmt.Println(err)
-	}
-	respMessage, err := icmp.ParseMessage(1, respBinary[:n])
+	err := p.Ping()
 	if err != nil {
 		fmt.Println(err)
-	}
-	switch respMessage.Type {
-	case ipv4.ICMPTypeEchoReply:
-		fmt.Println("got reflection from", peer)
-	default:
-		fmt.Printf("got %+v; want echo reply\n", respMessage)
+		os.Exit(2)
 	}
 }

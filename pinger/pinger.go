@@ -43,16 +43,13 @@ func (p *Pinger) Default(src net.IP, dst net.IP, amt *int) error {
 	}
 	defaultAmt := 32
 
-	if dst != nil {
-		p.dst = dst
-	} else {
-		p.dst = defaultIP
-	}
 	if src != nil {
 		p.src = src
 	} else {
 		p.src = defaultIP
 	}
+
+	p.SetDst(dst)
 
 	if amt != nil {
 		p.amt = *amt
@@ -62,25 +59,42 @@ func (p *Pinger) Default(src net.IP, dst net.IP, amt *int) error {
 	return nil
 }
 
+// SetAmt to set private value amt
+func (p *Pinger) SetAmt(amt int) int {
+	p.amt = amt
+	return amt
+}
+
+// SetSrc to set private value src
+func (p *Pinger) SetSrc(src net.IP) (net.IP, error) {
+	if src == nil {
+		return nil, errors.New("src must not be nil")
+	}
+	p.src = src
+	return p.src, nil
+}
+
 // SetDst is a setter function that does some required changes while setting dst,
 // 		including changing the src IP
-func (p *Pinger) SetDst(dst net.IP) error {
+func (p *Pinger) SetDst(dst net.IP) (net.IP, error) {
 	if dst == nil {
-		return errors.New("destination IP must not be nil")
+		return nil, errors.New("dst must not be nil")
 	}
 	p.dst = dst
 	localhostIP, err := utils.GetIPv4("localhost")
 	if err != nil {
-		return err
+		return nil, err
 	}
-	fmt.Println("src:", p.src)
-	fmt.Println("dst:", p.dst)
-	fmt.Println("localhost:", localhostIP)
-	fmt.Println("equality:", p.dst.Equal(localhostIP))
+	/*
+		fmt.Println("src:", p.src)
+		fmt.Println("dst:", p.dst)
+		fmt.Println("localhost:", localhostIP)
+		fmt.Println("equality:", p.dst.Equal(localhostIP))
+	*/
 	if p.dst.Equal(localhostIP) {
 		p.src = p.dst
 	}
-	return nil
+	return p.dst, nil
 }
 
 // Ping does the action of pinging a server.

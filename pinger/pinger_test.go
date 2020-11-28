@@ -9,7 +9,7 @@ import (
 func TestPinger(t *testing.T) {
 	tests := []string{
 		"localhost",
-		"192.168.50.17", // change this number to your default gateway
+		"192.168.50.1", // change this number to your default gateway
 		"google.com",
 	}
 	for _, test := range tests {
