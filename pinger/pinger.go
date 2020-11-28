@@ -6,7 +6,6 @@ import (
 	"golang.org/x/net/ipv4"
 	"net"
 	"os"
-	"reflect"
 )
 
 // Pinger structure has the following properties
@@ -58,7 +57,7 @@ func (p *Pinger) Default(src net.IP, dst net.IP, amt *int) {
 func (p Pinger) Ping() error {
 	conn, err := icmp.ListenPacket("ip:icmp", fmt.Sprint(p.src)) // packets from localhost
 	if err != nil {
-		fmt.Println("ERROR:", err.Error())
+		return err
 	}
 	defer conn.Close()
 
@@ -78,7 +77,6 @@ func (p Pinger) Ping() error {
 			return err
 		}
 
-		fmt.Println(reflect.TypeOf(conn))
 		_, err = conn.WriteTo(reqBinary, &net.IPAddr{IP: p.dst, Zone: ""})
 		if err != nil {
 			return err
