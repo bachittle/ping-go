@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -40,6 +41,32 @@ func TestGetIPv4(t *testing.T) {
 			} else {
 				t.Error("Got a response:", ip)
 			}
+		})
+	}
+}
+
+func TestGetLocalIPs(t *testing.T) {
+	// IP addresses set by the computer. Set this manually
+	// Go to command line
+	//  	- windows: type 'arp -a'
+	// 		- linux:   type 'ifconfig' or 'ip addr'
+	myLocalIPs := []string{
+		"192.168.50.76",
+	}
+	t.Log(GetGatewayIPv4())
+	for _, test := range myLocalIPs {
+		t.Run(test, func(t *testing.T) {
+			ips, err := GetLocalIPv4()
+			if err != nil {
+				t.Error(err)
+			}
+			t.Log(ips)
+			for _, ip := range ips {
+				if fmt.Sprint(ip) == test {
+					return
+				}
+			}
+			t.Error("Could not find local IP")
 		})
 	}
 }

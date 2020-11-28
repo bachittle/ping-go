@@ -2,6 +2,7 @@ package pinger
 
 import (
 	"fmt"
+	"github.com/jackpal/gateway"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"net"
@@ -29,11 +30,15 @@ func NewPinger() Pinger {
 // if nil, do default value.
 //
 // Default values for each field:
-// - src: 127.0.0.1
-// - dst: 127.0.0.1
+// - src: Default Gateway Interface (192.168.2.*)
+// - src: Default Gateway Interface (192.168.2.*)
 // - amt: 32
-func (p *Pinger) Default(src net.IP, dst net.IP, amt *int) {
-	defaultIP := net.ParseIP("127.0.0.1")
+func (p *Pinger) Default(src net.IP, dst net.IP, amt *int) error {
+
+	defaultIP, err := gateway.DiscoverInterface()
+	if err != nil {
+		return err
+	}
 	defaultAmt := 32
 
 	if src != nil {
@@ -51,6 +56,7 @@ func (p *Pinger) Default(src net.IP, dst net.IP, amt *int) {
 	} else {
 		p.amt = defaultAmt
 	}
+	return nil
 }
 
 // Ping does the action of pinging a server.

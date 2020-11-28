@@ -17,3 +17,6 @@
 
 # VSCODE: ignore vscode workstation
 .vscode
+
+# ignore all external packages
+ext/gateway
