@@ -1,7 +1,9 @@
 package pinger
 
 import (
+	"errors"
 	"fmt"
+	"github.com/bachittle/ping-go/utils"
 	"github.com/jackpal/gateway"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
@@ -31,7 +33,7 @@ func NewPinger() Pinger {
 //
 // Default values for each field:
 // - src: Default Gateway Interface (192.168.2.*)
-// - src: Default Gateway Interface (192.168.2.*)
+// - dst: Default Gateway Interface (192.168.2.*)
 // - amt: 32
 func (p *Pinger) Default(src net.IP, dst net.IP, amt *int) error {
 
@@ -41,20 +43,42 @@ func (p *Pinger) Default(src net.IP, dst net.IP, amt *int) error {
 	}
 	defaultAmt := 32
 
-	if src != nil {
-		p.src = src
-	} else {
-		p.src = defaultIP
-	}
 	if dst != nil {
 		p.dst = dst
 	} else {
 		p.dst = defaultIP
 	}
+	if src != nil {
+		p.src = src
+	} else {
+		p.src = defaultIP
+	}
+
 	if amt != nil {
 		p.amt = *amt
 	} else {
 		p.amt = defaultAmt
+	}
+	return nil
+}
+
+// SetDst is a setter function that does some required changes while setting dst,
+// 		including changing the src IP
+func (p *Pinger) SetDst(dst net.IP) error {
+	if dst == nil {
+		return errors.New("destination IP must not be nil")
+	}
+	p.dst = dst
+	localhostIP, err := utils.GetIPv4("localhost")
+	if err != nil {
+		return err
+	}
+	fmt.Println("src:", p.src)
+	fmt.Println("dst:", p.dst)
+	fmt.Println("localhost:", localhostIP)
+	fmt.Println("equality:", p.dst.Equal(localhostIP))
+	if p.dst.Equal(localhostIP) {
+		p.src = p.dst
 	}
 	return nil
 }
