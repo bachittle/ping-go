@@ -3,8 +3,8 @@ package pinger
 import (
 	"errors"
 	"fmt"
+	"github.com/bachittle/gateway"
 	"github.com/bachittle/ping-go/utils"
-	"github.com/jackpal/gateway"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"net"

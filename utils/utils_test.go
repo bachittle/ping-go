@@ -1,7 +1,8 @@
 package utils
 
 import (
-	"fmt"
+	"github.com/bachittle/gateway"
+	"net"
 	"testing"
 )
 
@@ -53,20 +54,30 @@ func TestGetLocalIPs(t *testing.T) {
 	myLocalIPs := []string{
 		"192.168.50.76",
 	}
-	t.Log(GetGatewayIPv4())
+	//t.Log(GetGatewayIPv4())
 	for _, test := range myLocalIPs {
 		t.Run(test, func(t *testing.T) {
-			ips, err := GetLocalIPv4()
+			cmp, err := gateway.DiscoverInterface()
 			if err != nil {
 				t.Error(err)
 			}
-			t.Log(ips)
-			for _, ip := range ips {
-				if fmt.Sprint(ip) == test {
-					return
-				}
+			if !cmp.Equal(net.ParseIP(test)) {
+				t.Error(cmp, "!=", test)
 			}
-			t.Error("Could not find local IP")
+
+			/*
+				ips, err := GetLocalIPv4()
+				if err != nil {
+					t.Error(err)
+				}
+				t.Log(ips)
+				for _, ip := range ips {
+					if fmt.Sprint(ip) == test {
+						return
+					}
+				}
+				t.Error("Could not find local IP")
+			*/
 		})
 	}
 }

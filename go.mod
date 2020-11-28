@@ -10,5 +10,4 @@ require (
 replace (
 	github.com/bachittle/ping-go/pinger => ./pinger
 	github.com/bachittle/ping-go/utils => ./utils
-	github.com/jackpal/gateway => ./ext/gateway
 )
