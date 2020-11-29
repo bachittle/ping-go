@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"github.com/bachittle/gateway"
-	"net"
+	//"github.com/bachittle/gateway"
+	//"net"
+	"fmt"
 	"testing"
 )
 
@@ -11,6 +12,7 @@ func TestGetIPv4(t *testing.T) {
 	passTests := []string{
 		"127.0.0.1",
 		"localhost",
+		"192.168.50.1", // set this to your default gateway
 		"google.com",
 	}
 
@@ -46,6 +48,23 @@ func TestGetIPv4(t *testing.T) {
 	}
 }
 
+func TestGetIPv4CIDR(t *testing.T) {
+	passTests := []string{
+		"192.168.50.1/24", // set this to your default gateway
+		"google.com/24",
+	}
+	for _, test := range passTests {
+		t.Run(test, func(t *testing.T) {
+			IPs, err := GetIPv4CIDR(test)
+			if err != nil {
+				t.Error(err)
+			}
+			t.Log(fmt.Sprint("found ", len(IPs), " IP addresses for ", test))
+		})
+	}
+}
+
+/*
 func TestGetLocalIPs(t *testing.T) {
 	// IP addresses set by the computer. Set this manually
 	// Go to command line
@@ -65,19 +84,18 @@ func TestGetLocalIPs(t *testing.T) {
 				t.Error(cmp, "!=", test)
 			}
 
-			/*
-				ips, err := GetLocalIPv4()
-				if err != nil {
-					t.Error(err)
+			ips, err := GetLocalIPv4()
+			if err != nil {
+				t.Error(err)
+			}
+			t.Log(ips)
+			for _, ip := range ips {
+				if fmt.Sprint(ip) == test {
+					return
 				}
-				t.Log(ips)
-				for _, ip := range ips {
-					if fmt.Sprint(ip) == test {
-						return
-					}
-				}
-				t.Error("Could not find local IP")
-			*/
+			}
+			t.Error("Could not find local IP")
 		})
 	}
 }
+*/

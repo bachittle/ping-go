@@ -3,8 +3,10 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net"
-	//"github.com/jackpal/gateway"
+	"strconv"
+	"strings"
 )
 
 // GetIPv4 takes a generic string and gets a single IPv4 address of type net.IP.
@@ -22,10 +24,70 @@ func GetIPv4(hostname string) (net.IP, error) {
 	return nil, errors.New("No IPv4 addresses found")
 }
 
+// GetIPv4CIDR returns an array of IPs from a CIDR hostname
+// EX: "192.168.2.1/24" will get 256 domains from 192.168.2.0 - 192.168.2.255
+func GetIPv4CIDR(hostnameCIDR string) (IPs []net.IP, err error) {
+	// check if hostname string is valid first
+	i := strings.Index(hostnameCIDR, "/")
+	if i == -1 {
+		err = errors.New("Invalid index")
+		return
+	}
+	ipCIDR, ipNet, err := net.ParseCIDR(hostnameCIDR)
+	if err != nil {
+		// try to look up IP address first
+		var newIPs []string
+		newIPs, err = net.LookupHost(hostnameCIDR[:i])
+		for _, ip := range newIPs {
+			ipCIDR, ipNet, err = net.ParseCIDR(fmt.Sprint(ip, hostnameCIDR[i:]))
+			if err == nil {
+				break
+			}
+		}
+	}
+	// fmt.Println("ip:", ipCIDR)
+	// fmt.Println("ipNet:", ipNet)
+	for ip := ipCIDR.Mask(ipNet.Mask); ipNet.Contains(ip); IncrementIP(ip) {
+		newIP := make(net.IP, len(ip))
+		copy(newIP, ip)
+		IPs = append(IPs, newIP)
+	}
+	// error checking the lengths before return
+	var CIDRnum int
+
+	CIDRnum, err = strconv.Atoi(hostnameCIDR[i+1:])
+	if err != nil {
+		err = errors.New(fmt.Sprint("Invalid number:", hostnameCIDR[i+1:]))
+		return
+	}
+	CIDRlen := int(math.Pow(2, float64(32-CIDRnum)))
+	if CIDRlen != len(IPs) {
+		err = errors.New(fmt.Sprint("Error! Expected length", CIDRlen, ", got length", len(IPs)))
+		return
+	}
+	return
+}
+
+// IncrementIP will increment a given IP by doing byte manipulation, then return the result.
+func IncrementIP(ip net.IP) {
+	// fmt.Printf("ip: %#v\n", ip)
+	var i int
+	for i = len(ip) - 1; i >= 0; i-- {
+		// fmt.Printf("increment this ip: %#v\n", ip[i]+1)
+		if ip[i] != 0xff {
+			ip[i]++
+			break
+		}
+	}
+	if i == 0 && ip[i] == 0xff {
+		ip = nil
+	}
+}
+
 /*
 
-don't need this as now I am using github.com/jackpal/gateway.
-Will save this for a rainy day
+// don't need this as now I am using github.com/jackpal/gateway.
+// Will save this for a rainy day
 
 
 // LocalIP has an IP and an interface associated with the IP.
