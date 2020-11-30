@@ -9,6 +9,7 @@ import (
 	"golang.org/x/net/ipv4"
 	"net"
 	"os"
+	"time"
 )
 
 // Pinger structure has the following properties
@@ -19,6 +20,10 @@ type Pinger struct {
 	src net.IP
 	dst net.IP
 	amt int
+}
+
+func (p Pinger) String() string {
+	return fmt.Sprintf("Pinger{%v, %v, %v}", p.src, p.dst, p.amt)
 }
 
 // NewPinger creates a default Pinger by calling p.Default() and returns p
@@ -74,6 +79,17 @@ func (p *Pinger) SetSrc(src net.IP) (net.IP, error) {
 	return p.src, nil
 }
 
+// TimeoutError is for Ping when it times out.
+// It returns a pinger object, and timeout interval (in milliseconds).
+type TimeoutError struct {
+	pinger  Pinger
+	timeout int
+}
+
+func (e *TimeoutError) Error() string {
+	return fmt.Sprint(e.pinger, " timed out after ", e.timeout, " milliseconds")
+}
+
 // SetDst is a setter function that does some required changes while setting dst,
 // 		including changing the src IP
 func (p *Pinger) SetDst(dst net.IP) (net.IP, error) {
@@ -97,50 +113,93 @@ func (p *Pinger) SetDst(dst net.IP) (net.IP, error) {
 	return p.dst, nil
 }
 
-// Ping does the action of pinging a server.
-func (p Pinger) Ping() error {
-	conn, err := icmp.ListenPacket("ip:icmp", fmt.Sprint(p.src)) // packets from localhost
-	if err != nil {
-		return err
+// Ping does the action of pinging a server. Returns the ICMP message response.
+// to prevent a hanging ping, errors on a timeout number as a time (milliseconds)
+func (p Pinger) Ping(timeouts ...int) ([]*icmp.Message, error) {
+	timeout := 1000 // 1 second
+	if len(timeouts) != 0 {
+		timeout = timeouts[0]
 	}
-	defer conn.Close()
-
+	var msgList []*icmp.Message
 	for i := 0; i < p.amt; i++ {
-		reqMsg := icmp.Message{
-			Type: ipv4.ICMPTypeEcho,
-			Code: 0,
-			Body: &icmp.Echo{
-				ID:   os.Getpid() & 0xffff,
-				Seq:  1,
-				Data: []byte(""),
-			},
-		}
-
-		reqBinary, err := reqMsg.Marshal(nil)
+		conn, err := icmp.ListenPacket("ip:icmp", fmt.Sprint(p.src)) // packets from localhost
 		if err != nil {
-			return err
+			return nil, err
 		}
-
-		_, err = conn.WriteTo(reqBinary, &net.IPAddr{IP: p.dst, Zone: ""})
+		defer conn.Close()
+		chanMsg := make(chan *icmp.Message, 1)
+		var msg *icmp.Message
+		chanErr := make(chan error, 1)
+		go func() {
+			msg, err := p.PingOne(conn)
+			if err != nil {
+				chanErr <- err
+			} else {
+				chanMsg <- msg
+			}
+		}()
+		select {
+		case res := <-chanMsg:
+			msg = res
+		case res := <-chanErr:
+			err = res
+		case <-time.After(time.Duration(timeout) * time.Millisecond):
+			err = &TimeoutError{p, timeout}
+		}
 		if err != nil {
-			return err
+			return msgList, err
 		}
-
-		respBinary := make([]byte, 1500)
-		n, peer, err := conn.ReadFrom(respBinary)
-		if err != nil {
-			return err
-		}
-		respMessage, err := icmp.ParseMessage(1, respBinary[:n])
-		if err != nil {
-			return err
-		}
-		switch respMessage.Type {
-		case ipv4.ICMPTypeEchoReply:
-			fmt.Printf("got reflection from %v\n", peer)
-		default:
-			fmt.Printf("got %+v; want echo reply\n", respMessage)
-		}
+		msgList = append(msgList, msg)
 	}
-	return nil
+	fmt.Println(msgList)
+	return msgList, nil
+}
+
+// PingOne pings a server with one packet. Can also pass a connection as parameter.
+func (p Pinger) PingOne(conn *icmp.PacketConn) (*icmp.Message, error) {
+	var err error
+	if conn == nil {
+		conn, err = icmp.ListenPacket("ip:icmp", fmt.Sprint(p.src)) // packets from localhost
+		if err != nil {
+			return nil, err
+		}
+		defer conn.Close()
+	}
+
+	reqMsg := icmp.Message{
+		Type: ipv4.ICMPTypeEcho,
+		Code: 0,
+		Body: &icmp.Echo{
+			ID:   os.Getpid() & 0xffff,
+			Seq:  1,
+			Data: []byte(""),
+		},
+	}
+
+	reqBinary, err := reqMsg.Marshal(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = conn.WriteTo(reqBinary, &net.IPAddr{IP: p.dst, Zone: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	respBinary := make([]byte, 1500)
+	n, _, err := conn.ReadFrom(respBinary)
+	if err != nil {
+		return nil, err
+	}
+	respMsg, err := icmp.ParseMessage(1, respBinary[:n])
+	if err != nil {
+		return nil, err
+	}
+	switch respMsg.Type {
+	case ipv4.ICMPTypeEchoReply:
+		//fmt.Printf("got reflection from %v\n", peer)
+	default:
+		//fmt.Printf("got %+v; want echo reply\n", respMsg)
+	}
+	return respMsg, nil
 }

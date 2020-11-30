@@ -14,7 +14,7 @@ import (
 func GetIPv4(hostname string) (net.IP, error) {
 	ipArr, err := net.LookupIP(hostname)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
 	for _, ip := range ipArr {
 		if ip.To4() != nil {

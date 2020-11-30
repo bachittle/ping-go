@@ -11,6 +11,7 @@ func TestPinger(t *testing.T) {
 		"localhost",
 		"192.168.50.1", // change this number to your default gateway
 		"google.com",
+		"uwindsor.ca",
 	}
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {
@@ -21,7 +22,7 @@ func TestPinger(t *testing.T) {
 			}
 			p.SetDst(dst)
 			t.Log("testing", p.src, p.dst, p.amt)
-			err = p.Ping()
+			_, err = p.Ping()
 			if err != nil {
 				t.Error("Error in p.Ping():", err)
 			}
