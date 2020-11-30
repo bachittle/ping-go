@@ -83,12 +83,12 @@ func (p *Pinger) SetSrc(src net.IP) (net.IP, error) {
 // TimeoutError is for Ping when it times out.
 // It returns a pinger object, and timeout interval (in milliseconds).
 type TimeoutError struct {
-	pinger  Pinger
-	timeout int
+	Pinger  Pinger
+	Timeout int
 }
 
 func (e *TimeoutError) Error() string {
-	return fmt.Sprint(e.pinger, " timed out after ", e.timeout, " milliseconds")
+	return fmt.Sprint(e.Pinger, " timed out after ", e.Timeout, " milliseconds")
 }
 
 // SetDst is a setter function that does some required changes while setting dst,
