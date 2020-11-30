@@ -38,7 +38,7 @@ func main() {
 			break
 		}
 	}
-	err := p.Ping()
+	_, err := p.Ping(os.Stdout)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(2)

@@ -1,6 +1,7 @@
 package pinger
 
 import (
+	"fmt"
 	"github.com/bachittle/ping-go/utils"
 	"testing"
 )
@@ -11,7 +12,7 @@ func TestPinger(t *testing.T) {
 		"localhost",
 		"192.168.50.1", // change this number to your default gateway
 		"google.com",
-		"uwindsor.ca",
+		"uwindsor.ca", // known to block ICMP packets
 	}
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {
@@ -24,7 +25,18 @@ func TestPinger(t *testing.T) {
 			t.Log("testing", p.src, p.dst, p.amt)
 			_, err = p.Ping()
 			if err != nil {
-				t.Error("Error in p.Ping():", err)
+				_, ok := err.(*TimeoutError)
+				if !ok {
+					t.Error("Error in p.Ping():", err)
+				} else {
+					// timeout error isn't necessarily a coding bug, log just in case
+					t.Log(fmt.Sprint(
+						"\n---------------TIMEOUT---------------\n",
+						err,
+						".\nServer is either blocking ICMP packets or your internet is down. ",
+						"\n-------------------------------------\n",
+					))
+				}
 			}
 		})
 	}

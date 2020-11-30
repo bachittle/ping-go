@@ -7,6 +7,7 @@ import (
 	"github.com/bachittle/ping-go/utils"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
+	"io"
 	"net"
 	"os"
 	"time"
@@ -115,10 +116,24 @@ func (p *Pinger) SetDst(dst net.IP) (net.IP, error) {
 
 // Ping does the action of pinging a server. Returns the ICMP message response.
 // to prevent a hanging ping, errors on a timeout number as a time (milliseconds)
-func (p Pinger) Ping(timeouts ...int) ([]*icmp.Message, error) {
-	timeout := 1000 // 1 second
-	if len(timeouts) != 0 {
-		timeout = timeouts[0]
+//
+// usage:
+// - p.Ping() // standard ping with timeout, no output writing
+// - p.Ping(100) // ping with timeout of 100 millisecond, no output writing
+// - p.Ping(100, os.Stdout) // ping with timeout of 100 millisecond to stdout
+func (p Pinger) Ping(args ...interface{}) ([]*icmp.Message, error) {
+	timeout := 1000
+	var ok bool
+	var writer io.Writer
+	for _, arg := range args {
+		timeout, ok = arg.(int)
+		if !ok {
+			timeout = 1000
+			writer, ok = arg.(io.Writer)
+			if !ok {
+				return nil, errors.New(fmt.Sprint("invalid arguments: ", args))
+			}
+		}
 	}
 	var msgList []*icmp.Message
 	for i := 0; i < p.amt; i++ {
@@ -140,18 +155,26 @@ func (p Pinger) Ping(timeouts ...int) ([]*icmp.Message, error) {
 		}()
 		select {
 		case res := <-chanMsg:
+			if writer != nil {
+				fmt.Fprintln(writer, "got response ", res)
+			}
 			msg = res
 		case res := <-chanErr:
+			if writer != nil {
+				fmt.Fprintln(writer, "got an error ", res)
+			}
 			err = res
 		case <-time.After(time.Duration(timeout) * time.Millisecond):
 			err = &TimeoutError{p, timeout}
+			if writer != nil {
+				fmt.Fprintln(writer, "got a timeout error ", err)
+			}
 		}
 		if err != nil {
 			return msgList, err
 		}
 		msgList = append(msgList, msg)
 	}
-	fmt.Println(msgList)
 	return msgList, nil
 }
 
