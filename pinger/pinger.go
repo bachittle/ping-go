@@ -80,6 +80,11 @@ func (p Pinger) GetAmt() int {
 	return p.amt
 }
 
+// GetConn returns a conn
+func (p Pinger) GetConn() *icmp.PacketConn {
+	return p.conn
+}
+
 // SetAmt to set private value amt
 func (p *Pinger) SetAmt(amt int) int {
 	p.amt = amt
