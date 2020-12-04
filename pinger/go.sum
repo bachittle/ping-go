@@ -6,6 +6,8 @@ github.com/bachittle/ping-go/utils v0.0.0-20201204042230-3e400ffa0019 h1:2cMWCD3
 github.com/bachittle/ping-go/utils v0.0.0-20201204042230-3e400ffa0019/go.mod h1:GMEKtw5LlTmQH38crQj9nTJa8ocIJx2FPM5g2dglaPM=
 github.com/bachittle/ping-go/utils v0.0.0-20201204213902-27e165534fdc h1:36DaHtZVGYZGEWbEDKk4uuMviQ/roSmFd+kVRKDAHhw=
 github.com/bachittle/ping-go/utils v0.0.0-20201204213902-27e165534fdc/go.mod h1:GMEKtw5LlTmQH38crQj9nTJa8ocIJx2FPM5g2dglaPM=
+github.com/bachittle/ping-go/utils v0.0.0-20201204220408-a953ebeaea1b h1:Gn/uT0Mzl7K4cfEG6M+oc5Ql6ADElRMid+OdatV1wZ4=
+github.com/bachittle/ping-go/utils v0.0.0-20201204220408-a953ebeaea1b/go.mod h1:GMEKtw5LlTmQH38crQj9nTJa8ocIJx2FPM5g2dglaPM=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
