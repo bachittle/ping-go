@@ -65,6 +65,21 @@ func (p *Pinger) Default(src net.IP, dst net.IP, amt *int) error {
 	return nil
 }
 
+// GetSrc is a getter for p.src
+func (p Pinger) GetSrc() net.IP {
+	return p.src
+}
+
+// GetDst is a getter for p.dst
+func (p Pinger) GetDst() net.IP {
+	return p.dst
+}
+
+// GetAmt is a getter for p.amt
+func (p Pinger) GetAmt() int {
+	return p.amt
+}
+
 // SetAmt to set private value amt
 func (p *Pinger) SetAmt(amt int) int {
 	p.amt = amt
@@ -78,22 +93,6 @@ func (p *Pinger) SetSrc(src net.IP) (net.IP, error) {
 	}
 	p.src = src
 	return p.src, nil
-}
-
-// NewConn creates the icmp packet "connection"
-func (p Pinger) NewConn() (*icmp.PacketConn, error) {
-	return icmp.ListenPacket("ip:icmp", fmt.Sprint(p.src)) // packets from localhost
-}
-
-// TimeoutError is for Ping when it times out.
-// It returns a pinger object, and timeout interval (in milliseconds).
-type TimeoutError struct {
-	Pinger  Pinger
-	Timeout int
-}
-
-func (e *TimeoutError) Error() string {
-	return fmt.Sprint(e.Pinger, " timed out after ", e.Timeout, " milliseconds")
 }
 
 // SetDst is a setter function that does some required changes while setting dst,
@@ -117,6 +116,22 @@ func (p *Pinger) SetDst(dst net.IP) (net.IP, error) {
 		p.src = p.dst
 	}
 	return p.dst, nil
+}
+
+// NewConn creates the icmp packet "connection"
+func (p Pinger) NewConn() (*icmp.PacketConn, error) {
+	return icmp.ListenPacket("ip:icmp", fmt.Sprint(p.src)) // packets from localhost
+}
+
+// TimeoutError is for Ping when it times out.
+// It returns a pinger object, and timeout interval (in milliseconds).
+type TimeoutError struct {
+	Pinger  Pinger
+	Timeout int
+}
+
+func (e *TimeoutError) Error() string {
+	return fmt.Sprint(e.Pinger, " timed out after ", e.Timeout, " milliseconds")
 }
 
 // PingPong sends an echo request with Ping and receives a result with Pong.
