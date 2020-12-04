@@ -7,9 +7,8 @@ import (
 	"github.com/bachittle/ping-go/utils"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
-	"io"
+	"math/rand"
 	"net"
-	"os"
 	"time"
 )
 
@@ -18,9 +17,10 @@ import (
 // - dst (destination) IP address (set by the user)
 // - amt (amount) of pings to the dst IP address.
 type Pinger struct {
-	src net.IP
-	dst net.IP
-	amt int
+	src  net.IP
+	dst  net.IP
+	conn *icmp.PacketConn
+	amt  int
 }
 
 func (p Pinger) String() string {
@@ -29,7 +29,7 @@ func (p Pinger) String() string {
 
 // NewPinger creates a default Pinger by calling p.Default() and returns p
 func NewPinger() Pinger {
-	p := Pinger{nil, nil, 0}
+	p := Pinger{nil, nil, nil, 0}
 	p.Default(nil, nil, nil)
 	return p
 }
@@ -80,6 +80,11 @@ func (p *Pinger) SetSrc(src net.IP) (net.IP, error) {
 	return p.src, nil
 }
 
+// NewConn creates the icmp packet "connection"
+func (p Pinger) NewConn() (*icmp.PacketConn, error) {
+	return icmp.ListenPacket("ip:icmp", fmt.Sprint(p.src)) // packets from localhost
+}
+
 // TimeoutError is for Ping when it times out.
 // It returns a pinger object, and timeout interval (in milliseconds).
 type TimeoutError struct {
@@ -114,103 +119,105 @@ func (p *Pinger) SetDst(dst net.IP) (net.IP, error) {
 	return p.dst, nil
 }
 
-// Ping does the action of pinging a server. Returns the ICMP message response.
-// to prevent a hanging ping, errors on a timeout number as a time (milliseconds)
-//
+// PingPong sends an echo request with Ping and receives a result with Pong.
 // usage:
-// - p.Ping() // standard ping with timeout, no output writing
-// - p.Ping(100) // ping with timeout of 100 millisecond, no output writing
-// - p.Ping(100, os.Stdout) // ping with timeout of 100 millisecond to stdout
-func (p Pinger) Ping(args ...interface{}) ([]*icmp.Message, error) {
+// p.PingPong() 	// uses default timeout time of 1000ms
+// p.PingPong(500) // set the timeout to 500ms
+func (p Pinger) PingPong(args ...interface{}) ([]*icmp.Message, error) {
 	timeout := 1000
-	var ok bool
-	var writer io.Writer
 	for _, arg := range args {
-		timeout, ok = arg.(int)
-		if !ok {
-			timeout = 1000
-			writer, ok = arg.(io.Writer)
-			if !ok {
-				return nil, errors.New(fmt.Sprint("invalid arguments: ", args))
-			}
+		temp, ok := arg.(int)
+		if ok {
+			timeout = temp
+			continue
 		}
 	}
-	var msgList []*icmp.Message
-	for i := 0; i < p.amt; i++ {
-		conn, err := icmp.ListenPacket("ip:icmp", fmt.Sprint(p.src)) // packets from localhost
-		if err != nil {
-			return nil, err
-		}
-		defer conn.Close()
-		chanMsg := make(chan *icmp.Message, 1)
-		var msg *icmp.Message
-		chanErr := make(chan error, 1)
-		go func() {
-			msg, err := p.PingOne(conn)
-			if err != nil {
-				chanErr <- err
-			} else {
-				chanMsg <- msg
-			}
-		}()
-		select {
-		case res := <-chanMsg:
-			if writer != nil {
-				fmt.Fprintln(writer, "got response ", res)
-			}
-			msg = res
-		case res := <-chanErr:
-			if writer != nil {
-				fmt.Fprintln(writer, "got an error ", res)
-			}
-			err = res
-		case <-time.After(time.Duration(timeout) * time.Millisecond):
-			err = &TimeoutError{p, timeout}
-			if writer != nil {
-				fmt.Fprintln(writer, "got a timeout error ", err)
-			}
-		}
-		if err != nil {
-			return msgList, err
-		}
-		msgList = append(msgList, msg)
+	err := p.Ping()
+	if err != nil {
+		return nil, err
 	}
-	return msgList, nil
+	return p.Pong(timeout)
 }
 
-// PingOne pings a server with one packet. Can also pass a connection as parameter.
-func (p Pinger) PingOne(conn *icmp.PacketConn) (*icmp.Message, error) {
+// Ping sends a ping to the specified dst with amt packets
+func (p *Pinger) Ping() error {
+	conn, err := p.NewConn()
+	if err != nil {
+		return err
+	}
+	p.conn = conn
+	for i := 0; i < p.amt; i++ {
+		err = p.SendOnePing(i, conn)
+	}
+	return err
+}
+
+// Pong receives a ping from the specified dst with amt packets asynchronously with timeout
+func (p Pinger) Pong(timeout int) (msgList []*icmp.Message, err error) {
+	cErr := make(chan error, 1)
+	cMsg := make(chan *icmp.Message, 1)
+	for i := 0; i < p.amt; i++ {
+		go func() {
+			msg, err := p.RecvOnePong()
+			if err != nil {
+				cErr <- err
+				return
+			}
+			cMsg <- msg
+		}()
+	}
+	for i := 0; i < p.amt; i++ {
+		select {
+		case res := <-cErr:
+			err = res
+		case res := <-cMsg:
+			msgList = append(msgList, res)
+		case <-time.After(time.Duration(timeout) * time.Millisecond):
+			err = errors.New("timeout")
+		}
+	}
+	return
+}
+
+// SendOnePing pings a server with one packet. Can also pass a connection as parameter.
+func (p Pinger) SendOnePing(seq int, conn *icmp.PacketConn) error {
 	var err error
 	if conn == nil {
-		conn, err = icmp.ListenPacket("ip:icmp", fmt.Sprint(p.src)) // packets from localhost
+		conn, err = p.NewConn()
 		if err != nil {
-			return nil, err
+			return err
 		}
-		defer conn.Close()
+		p.conn = conn
 	}
 
 	reqMsg := icmp.Message{
 		Type: ipv4.ICMPTypeEcho,
 		Code: 0,
 		Body: &icmp.Echo{
-			ID:   os.Getpid() & 0xffff,
-			Seq:  1,
+			ID:   rand.Intn(65535),
+			Seq:  seq,
 			Data: []byte(""),
 		},
 	}
 
 	reqBinary, err := reqMsg.Marshal(nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	_, err = conn.WriteTo(reqBinary, &net.IPAddr{IP: p.dst, Zone: ""})
-	if err != nil {
-		return nil, err
-	}
+	ipAddr := &net.IPAddr{IP: p.dst, Zone: ""}
+	_, err = conn.WriteTo(reqBinary, ipAddr)
+	return err
+}
 
+// RecvOnePong receives the result of a SendPing message. Must include packet connection.
+func (p Pinger) RecvOnePong() (*icmp.Message, error) {
+	fmt.Println(p.conn)
+	if p.conn == nil {
+		return nil, errors.New("no conn, cannot read pong")
+	}
 	respBinary := make([]byte, 1500)
-	n, _, err := conn.ReadFrom(respBinary)
+	n, _, err := p.conn.ReadFrom(respBinary)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +229,8 @@ func (p Pinger) PingOne(conn *icmp.PacketConn) (*icmp.Message, error) {
 	case ipv4.ICMPTypeEchoReply:
 		//fmt.Printf("got reflection from %v\n", peer)
 	default:
-		//fmt.Printf("got %+v; want echo reply\n", respMsg)
+		// fmt.Printf("got %+v; want echo reply\n", respMsg)
+		return respMsg, errors.New("notEchoReply")
 	}
 	return respMsg, nil
 }

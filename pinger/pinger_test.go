@@ -10,7 +10,7 @@ import (
 func TestPinger(t *testing.T) {
 	tests := []string{
 		"localhost",
-		"192.168.50.1", // change this number to your default gateway
+		"192.168.50.10", // change this number to your default gateway
 		"google.com",
 		"uwindsor.ca", // known to block ICMP packets
 	}
@@ -23,7 +23,7 @@ func TestPinger(t *testing.T) {
 			}
 			p.SetDst(dst)
 			t.Log("testing", p.src, p.dst, p.amt)
-			_, err = p.Ping()
+			err = p.Ping()
 			if err != nil {
 				_, ok := err.(*TimeoutError)
 				if !ok {
