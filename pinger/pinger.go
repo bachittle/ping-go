@@ -212,7 +212,6 @@ func (p Pinger) SendOnePing(seq int, conn *icmp.PacketConn) error {
 
 // RecvOnePong receives the result of a SendPing message. Must include packet connection.
 func (p Pinger) RecvOnePong() (*icmp.Message, error) {
-	fmt.Println(p.conn)
 	if p.conn == nil {
 		return nil, errors.New("no conn, cannot read pong")
 	}
